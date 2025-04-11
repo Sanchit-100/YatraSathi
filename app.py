@@ -91,6 +91,33 @@ def user_dashboard():
         return redirect(url_for('login'))
     return render_template('user_dashboard.html')
 
+@app.route('/booking/flight')
+def flight_booking():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    # TODO: render actual flight booking page
+    return render_template('flight_booking.html')
+
+@app.route('/booking/train')
+def train_booking():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    # TODO: render actual train booking page
+    return render_template('train_booking.html')
+
+@app.route('/booking/bus')
+def bus_booking():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    # TODO: render actual bus booking page
+    return render_template('bus_booking.html')
+
+@app.route('/profile')
+def profile():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    # TODO: fetch user details from DB and pass to template
+    return render_template('profile.html')
 
 @app.route('/logout')
 def logout():
