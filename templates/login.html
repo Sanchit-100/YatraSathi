@@ -5,6 +5,7 @@
   <title>Login - YatraSathi</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    /* Existing styles remain the same */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -32,6 +33,7 @@
       width: 100%;
       max-width: 400px;
       animation: float 6s ease-in-out infinite;
+      text-align: center; /* Center content */
     }
 
     h2 {
@@ -45,6 +47,7 @@
       display: flex;
       flex-direction: column;
       gap: 1.2rem;
+      margin-bottom: 1.5rem; /* Add space below form */
     }
 
     input {
@@ -85,6 +88,7 @@
     .flash-messages {
       margin-top: 1rem;
       text-align: center;
+      margin-bottom: 1rem; /* Add space below flashes */
     }
 
     .flash-messages ul {
@@ -99,6 +103,15 @@
       margin-top: 10px;
       color: #ff8080;
       font-weight: bold;
+    }
+
+    .admin-login-link a {
+        color: #0ff;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+    .admin-login-link a:hover {
+        text-decoration: underline;
     }
 
     @keyframes float {
@@ -117,20 +130,24 @@
 <body>
 
   <div class="login-container">
-    <h2>Login</h2>
+    <h2>User Login</h2>
     <form method="POST">
       <input name="email" placeholder="Email" required>
       <input name="password" type="password" placeholder="Password" required>
       <button type="submit">Login</button>
     </form>
 
-    {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages(category_filter=['error']) %} {# Only show error messages here #}
       {% if messages %}
       <div class="flash-messages">
         <ul>{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>
       </div>
       {% endif %}
     {% endwith %}
+
+    <div class="admin-login-link">
+        <a href="{{ url_for('admin_login') }}">Login as Admin</a>
+    </div>
   </div>
 
 </body>
