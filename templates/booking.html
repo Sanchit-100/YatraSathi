@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Book Transport - YatraSathi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+        }
+        .filter-form {
+            background: rgba(249, 249, 249, 0.05);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end; /* Align items to the bottom */
+        }
+        .form-group { display: flex; flex-direction: column; }
+        label { margin-bottom: 0.5rem; font-weight: bold; color: #ccc; }
+        select, input[type="date"], button {
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+        }
+        select { appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='5' viewBox='0 0 10 5'%3E%3Cpath fill='%23fff' d='M0 0l5 5 5-5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.7em top 50%; background-size: 0.65em auto; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        button {
+            background: #0ff;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+            border: none;
+            height: calc(1.6rem + 1.6rem + 1px); /* Match height of inputs */
+            align-self: end; /* Ensure button aligns with inputs */
+        }
+        button:hover { background: #0cf; transform: scale(1.05); }
+        .transport-list { list-style: none; padding: 0; }
+        .transport-item {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            grid-template-columns: 1fr auto; /* Adjust grid for details and button */
+            gap: 1rem;
+            align-items: center; /* Center items vertically */
+            transition: background 0.3s;
+        }
+         .transport-item:hover { background: rgba(0, 255, 255, 0.1); }
+        .details { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem 1rem; } /* Grid for details */
+        .details strong { color: #0ff; }
+        .details span { display: block; /* Ensure details take full width */ }
+        .book-button {
+            padding: 0.7rem 1.5rem;
+            background: #28a745; /* Green button */
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: background 0.3s;
+            text-align: center;
+            white-space: nowrap; /* Prevent button text wrapping */
+        }
+        .book-button:hover { background: #218838; }
+        .no-results { text-align: center; padding: 2rem; background: rgba(255, 0, 0, 0.1); border-radius: 8px; color: #ffaaaa; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #0ff; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+         /* Flash messages styling (optional, copy from login/register if needed) */
+        .flash-messages { margin-bottom: 1rem; text-align: center; }
+        .flash-messages ul { list-style: none; padding: 0; }
+        .flash-messages li { background: rgba(255, 0, 0, 0.2); padding: 10px; border-radius: 8px; margin-top: 10px; color: #ff8080; font-weight: bold; }
+        .user-info { text-align: right; margin-bottom: 1rem; color: #ccc; } /* Display username */
+    
+        /* Modify dropdown styling */
+        select option {
+            background-color: #302b63;  /* Background color for dropdown options */
+            color: #fff;  /* Text color for options */
+            padding: 12px;  /* Add some padding */
+        }
+
+        /* Style for when option is hovered */
+        select option:hover {
+            background-color: #24243e;
+        }
+
+        /* Style for selected option */
+        select option:checked {
+            background-color: #0f0c29;
+            color: #0ff;
+        }
+
+        /* Improve the select element itself */
+        select {
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: rgba(48, 43, 99, 0.9);  /* Matching theme color with transparency */
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        /* Add hover effect to select element */
+        select:hover {
+            background-color: rgba(48, 43, 99, 1);  /* Remove transparency on hover */
+            border-color: rgba(0, 255, 255, 0.5);  /* Cyan border on hover */
+        }
+
+        /* Style for focused select */
+        select:focus {
+            outline: none;
+            border-color: #0ff;
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+
+        /* Date Input Styling */
+        input[type="date"] {
+            background-color: rgba(48, 43, 99, 0.9);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.8rem;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+        }
+    
+        /* Calendar Icon */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            background-color: #0ff;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            filter: invert(1) brightness(2);
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+    
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+    
+        /* Hover state */
+        input[type="date"]:hover {
+            background-color: rgba(48, 43, 99, 1);
+            border-color: rgba(0, 255, 255, 0.5);
+        }
+    
+        /* Focus state */
+        input[type="date"]:focus {
+            outline: none;
+            border-color: #0ff;
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+    
+        /* Calendar Dropdown (where supported) */
+        input[type="date"]::-webkit-datetime-edit {
+            color: #fff;
+        }
+    
+        input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+            padding: 0;
+        }
+    
+        input[type="date"]::-webkit-datetime-edit-text {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 0 0.3em;
+        }
+    
+        input[type="date"]::-webkit-datetime-edit-month-field,
+        input[type="date"]::-webkit-datetime-edit-day-field,
+        input[type="date"]::-webkit-datetime-edit-year-field {
+            color: #fff;
+        }
+    
+        input[type="date"]:in-range::-webkit-datetime-edit-year-field,
+        input[type="date"]:in-range::-webkit-datetime-edit-month-field,
+        input[type="date"]:in-range::-webkit-datetime-edit-day-field {
+            background-color: transparent;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="user-info">Logged in as: {{ username or 'Guest' }}</div>
+        <a href="{{ url_for('user_dashboard') }}" class="back-link">← Back to Dashboard</a>
+        <h1>Find Your Transport</h1>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+          <div class="flash-messages">
+            <ul>{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>
+          </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="GET" action="{{ url_for('booking') }}" class="filter-form">
+            <div class="form-group">
+                <label for="source_station">Source Station</label>
+                <select id="source_station" name="source_station">
+                    <option value="">Any Source</option>
+                    {% for station in stations %}
+                    <option value="{{ station.name }}" {% if station.name == selected_source %}selected{% endif %}>{{ station.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="destination_station">Destination Station</label>
+                <select id="destination_station" name="destination_station">
+                    <option value="">Any Destination</option>
+                     {% for station in stations %}
+                    <option value="{{ station.name }}" {% if station.name == selected_destination %}selected{% endif %}>{{ station.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="travel_date">Date (Optional)</label>
+                <input type="date" id="travel_date" name="travel_date" value="{{ selected_date or '' }}">
+            </div>
+             <div class="form-group">
+                <label for="transport_type">Transport Type (Optional)</label>
+                <select id="transport_type" name="transport_type">
+                    <option value="">Any Type</option>
+                     {% for type in transport_types %}
+                    <option value="{{ type.type }}" {% if type.type == selected_type %}selected{% endif %}>{{ type.type|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit">Search</button>
+        </form>
+
+        <h2>Available Transports</h2>
+        {% if transports %}
+            <ul class="transport-list">
+                {% for transport in transports %}
+                <li class="transport-item">
+                    <div class="details">
+                         <span><strong>Transport:</strong> {{ transport.transport_name }} ({{ transport.transport_type|capitalize }})</span>
+                         <span><strong>Operator:</strong> {{ transport.operator }}</span>
+                         <span><strong>From:</strong> {{ transport.source_station_name }}</span>
+                         <span><strong>To:</strong> {{ transport.destination_station_name }}</span>
+                         <span><strong>Departure:</strong> {{ transport.departure_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                         <span><strong>Arrival:</strong> {{ transport.arrival_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                         <span><strong>Duration:</strong> {{ '%.2f'|format(transport.duration_hours) }} hrs</span>
+                         <span><strong>Distance:</strong> {{ '%.2f'|format(transport.distance_km) }} km</span>
+                         <span><strong>Starts From:</strong> ₹{{ '%.2f'|format(transport.min_price) if transport.min_price else 'N/A' }}</span>
+                    </div>
+                    {% set booking_url = '' %}
+                    {% if transport.transport_type == 'flight' %}
+                        {% set booking_url = url_for('flight_booking', schedule_id=transport.schedule_id) %}
+                    {% elif transport.transport_type == 'bus' %}
+                        {% set booking_url = url_for('bus_booking', schedule_id=transport.schedule_id) %}
+                    {% elif transport.transport_type == 'train' %}
+                        {% set booking_url = url_for('train_booking', schedule_id=transport.schedule_id) %}
+                    {% endif %}
+                    <a href="{{ booking_url }}" class="book-button">Book Now</a>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-results">No transports found matching your criteria. Try adjusting the filters.</p>
+        {% endif %}
+    </div>
+
+</body>
+</html>

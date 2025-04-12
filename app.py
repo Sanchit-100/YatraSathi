@@ -1,10 +1,11 @@
 # File: app.py
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify # Added jsonify
 # Remove flask_bcrypt import if not used for hashing (as per current insecure implementation)
 # from flask_bcrypt import Bcrypt
 import mysql.connector
 from config import DB_CONFIG
 import os # Needed for potential file uploads
+import datetime # Import datetime
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -136,26 +137,119 @@ def user_dashboard():
         flash('Please login to access the dashboard.', 'error')
         return redirect(url_for('login'))
     # Pass user name to dashboard template if needed
-    return render_template('user_dashboard.html', user_name=session.get('user_name'))
+    # Pass username to the template
+    return render_template('user_dashboard.html', user_name=session.get('user_name'), username=session.get('user_name'))
 
-# --- Booking Routes (Placeholders) ---
+# --- NEW BOOKING ROUTE ---
+@app.route('/booking', methods=['GET'])
+def booking():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Fetch distinct station names for dropdowns
+    cursor.execute("SELECT DISTINCT name FROM Station ORDER BY name")
+    stations = cursor.fetchall()
+
+    # Fetch distinct active transport types for dropdown
+    cursor.execute("SELECT DISTINCT type FROM Transport WHERE status = 'active' ORDER BY type")
+    transport_types = cursor.fetchall()
+
+    # --- Filtering Logic ---
+    source_station_name = request.args.get('source_station')
+    destination_station_name = request.args.get('destination_station')
+    travel_date_str = request.args.get('travel_date')
+    transport_type = request.args.get('transport_type')
+
+    query = """
+        SELECT
+            t.transport_id, t.name AS transport_name, t.type AS transport_type, t.operator,
+            s.schedule_id, s.departure_time, s.arrival_time, s.duration_hours,
+            r.route_id, r.distance_km,
+            st_source.name AS source_station_name,
+            st_dest.name AS destination_station_name,
+            (SELECT MIN(se.price) FROM Seat se WHERE se.transport_id = t.transport_id) AS min_price
+        FROM Schedule s
+        JOIN Transport t ON s.transport_id = t.transport_id
+        JOIN Route r ON s.route_id = r.route_id
+        JOIN Station st_source ON r.source_id = st_source.station_id
+        JOIN Station st_dest ON r.destination_id = st_dest.station_id
+        WHERE t.status = 'active'
+    """
+    params = []
+
+    if source_station_name:
+        query += " AND st_source.name = %s"
+        params.append(source_station_name)
+
+    if destination_station_name:
+        query += " AND st_dest.name = %s"
+        params.append(destination_station_name)
+
+    if travel_date_str:
+        try:
+            # Filter by date part only
+            travel_date = datetime.datetime.strptime(travel_date_str, '%Y-%m-%d').date()
+            query += " AND DATE(s.departure_time) = %s"
+            params.append(travel_date)
+        except ValueError:
+            flash("Invalid date format. Please use YYYY-MM-DD.")
+            # Optionally, clear the date filter or handle the error differently
+
+    if transport_type:
+        query += " AND t.type = %s"
+        params.append(transport_type)
+
+    query += " ORDER BY s.departure_time"
+
+    cursor.execute(query, tuple(params))
+    available_transports = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('booking.html',
+                           stations=stations,
+                           transport_types=transport_types,
+                           transports=available_transports,
+                           # Pass filter values back to template to keep them selected
+                           selected_source=source_station_name,
+                           selected_destination=destination_station_name,
+                           selected_date=travel_date_str,
+                           selected_type=transport_type,
+                           username=session.get('user_name')) # Pass username
+
+# --- End New Booking Route ---
+
+
+# --- Placeholder routes for specific booking pages ---
 @app.route('/booking/flight')
 def flight_booking():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('flight_booking.html')
+    # TODO: Add logic for flight booking selection (e.g., pass schedule_id)
+    flash("Flight booking page is under construction.")
+    return render_template('flight_booking.html', username=session.get('user_name'))
 
 @app.route('/booking/train')
 def train_booking():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('train_booking.html')
+    # TODO: Add logic for train booking selection
+    flash("Train booking page is under construction.")
+    return render_template('train_booking.html', username=session.get('user_name'))
 
 @app.route('/booking/bus')
 def bus_booking():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('bus_booking.html')
+    # TODO: Add logic for bus booking selection
+    flash("Bus booking page is under construction.")
+    return render_template('bus_booking.html', username=session.get('user_name'))
+# --- End Placeholder Routes ---
+
 
 # --- Profile Routes ---
 @app.route('/profile')
