@@ -74,29 +74,21 @@
 </head>
 <body>
   <div class="dashboard">
-    <h2>Welcome to Your Dashboard</h2>
+    <h2>Welcome to Your Dashboard, {{ username or 'User' }}!</h2>
     <div class="cards">
        <a href="{{ url_for('booking') }}" class="card">
         <h3>Book Transport</h3>
         <p>Search all active transports (Bus, Train, Flight).</p>
       </a>
-      <a href="{{ url_for('flight_booking') }}" class="card">
-        <h3>Flight Booking</h3>
-        <p>View specific flight booking options.</p>
-      </a>
-      <a href="{{ url_for('train_booking') }}" class="card">
-        <h3>Train Booking</h3>
-        <p>View specific train booking options.</p>
-      </a>
-      <a href="{{ url_for('bus_booking') }}" class="card">
-        <h3>Bus Booking</h3>
-        <p>View specific bus booking options.</p>
-      </a>
-      <a href="{{ url_for('profile') }}" class="card">
+       <a href="{{ url_for('profile') }}" class="card">
         <h3>My Profile</h3>
         <p>View or edit your personal information.</p>
       </a>
-    </div>
+      <a href="{{ url_for('cancellation') }}" class="card">
+        <h3>View/Cancel Bookings</h3>
+        <p>Manage your current bookings and view past cancellations.</p>
+      </a>
+       </div>
     <a href="{{ url_for('logout') }}" class="logout">Logout</a>
   </div>
 </body>
