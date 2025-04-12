@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Bookings - YatraSathi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* --- Inherited Styles (similar to user_dashboard.html & booking.html) --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-y: auto; /* Allow vertical scrolling */
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+        }
+        h2 {
+            margin-top: 2.5rem; /* Add space above section titles */
+            margin-bottom: 1rem;
+            text-align: left; /* Align section titles left */
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3); /* Add underline */
+            padding-bottom: 0.5rem;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            color: #0ff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+        .back-link:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+         /* Flash messages styling */
+        .flash-messages { margin-bottom: 1.5rem; text-align: center; }
+        .flash-messages ul { list-style: none; padding: 0; }
+        .flash-messages li {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .flash-success { background: rgba(0, 255, 0, 0.15); color: #80ff80; border: 1px solid rgba(0, 255, 0, 0.3); }
+        .flash-error { background: rgba(255, 0, 0, 0.15); color: #ff8080; border: 1px solid rgba(255, 0, 0, 0.3); }
+        .flash-info { background: rgba(0, 123, 255, 0.15); color: #80c0ff; border: 1px solid rgba(0, 123, 255, 0.3); }
+
+         .user-info { text-align: right; margin-bottom: 1rem; color: #ccc; font-size: 0.9rem;}
+
+        /* --- List Styles --- */
+        .booking-list { list-style: none; padding: 0; }
+        .booking-item, .cancellation-item {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            grid-template-columns: 1fr auto; /* Details take space, button aligns right */
+            gap: 1rem;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .booking-item:hover, .cancellation-item:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+        .details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
+            gap: 0.6rem 1.5rem; /* Row and column gap */
+            font-size: 0.95rem; /* Slightly smaller font */
+            overflow: hidden; /* Prevent details overflow */
+        }
+        .details strong {
+            color: #0ff;
+            display: inline-block;
+            min-width: 110px; /* Ensure alignment */
+            margin-right: 5px;
+         }
+        .details span {
+             display: block; /* Ensure details take full width if needed */
+             color: #eee;
+             word-wrap: break-word; /* Wrap long details */
+         }
+         .detail-item { /* Wrap each key-value pair */
+             margin-bottom: 0.3rem; /* Small space between detail items */
+         }
+
+        /* --- Button Styles --- */
+        .cancel-button {
+            padding: 0.7rem 1.5rem;
+            background: #dc3545; /* Red button */
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: background 0.3s, transform 0.2s;
+            cursor: pointer;
+            text-align: center;
+            white-space: nowrap;
+            height: fit-content; /* Adjust height */
+        }
+        .cancel-button:hover {
+            background: #c82333;
+             transform: scale(1.05);
+        }
+
+        /* --- No Results Message --- */
+        .no-results {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            color: #aaa;
+            margin-top: 1rem;
+        }
+
+        /* --- Responsive Adjustments --- */
+         @media (max-width: 768px) {
+            .booking-item, .cancellation-item {
+                grid-template-columns: 1fr; /* Stack button below details */
+                gap: 1rem;
+            }
+            .cancel-button {
+                width: 100%; /* Make button full width */
+                margin-top: 1rem;
+            }
+             .details {
+                 grid-template-columns: 1fr; /* Single column for details */
+                 gap: 0.4rem 1rem;
+             }
+             .details strong {
+                 min-width: 100px; /* Adjust for smaller screens */
+             }
+        }
+        @media (max-width: 480px) {
+             h1 { font-size: 1.8rem; }
+             h2 { font-size: 1.3rem; }
+             .details { font-size: 0.9rem; }
+             .cancel-button { padding: 0.6rem 1.2rem; }
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="user-info">Logged in as: {{ username or 'Guest' }}</div>
+        <a href="{{ url_for('user_dashboard') }}" class="back-link">← Back to Dashboard</a>
+        <h1>Manage Your Bookings</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div class="flash-messages">
+            <ul>
+            {% for category, message in messages %}
+              <li class="flash-{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        {% endwith %}
+
+        <h2>Active Bookings</h2>
+        {% if active_bookings %}
+            <ul class="booking-list">
+                {% for booking in active_bookings %}
+                <li class="booking-item">
+                    <div class="details">
+                         <span class="detail-item"><strong>PNR:</strong> {{ booking.pnr_number }}</span>
+                         <span class="detail-item"><strong>Transport:</strong> {{ booking.transport_name }} ({{ booking.transport_type|capitalize }})</span>
+                         <span class="detail-item"><strong>From:</strong> {{ booking.source_station_name }}</span>
+                         <span class="detail-item"><strong>To:</strong> {{ booking.destination_station_name }}</span>
+                         <span class="detail-item"><strong>Departure:</strong> {{ booking.departure_time.strftime('%Y-%m-%d %H:%M') if booking.departure_time else 'N/A' }}</span>
+                         <span class="detail-item"><strong>Arrival:</strong> {{ booking.arrival_time.strftime('%Y-%m-%d %H:%M') if booking.arrival_time else 'N/A' }}</span>
+                         <span class="detail-item"><strong>Seat:</strong> {{ booking.seat_number }} ({{ booking.seat_class|capitalize }})</span>
+                         <span class="detail-item"><strong>Booked On:</strong> {{ booking.booking_date.strftime('%Y-%m-%d') if booking.booking_date else 'N/A' }}</span>
+                         <span class="detail-item"><strong>Status:</strong> <span style="color: #28a745; font-weight: bold;">{{ booking.status|capitalize }}</span></span>
+                    </div>
+                    <form method="POST" action="{{ url_for('cancel_booking', booking_id=booking.booking_id) }}" onsubmit="return confirmCancel('{{ booking.pnr_number }}');">
+                        <button type="submit" class="cancel-button">Cancel Booking</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-results">You have no active bookings.</p>
+        {% endif %}
+
+        <h2>Cancellation History</h2>
+        {% if cancellations %}
+            <ul class="booking-list">
+                {% for cancel_info in cancellations %}
+                <li class="cancellation-item">
+                     <div class="details">
+                         <span class="detail-item"><strong>PNR:</strong> {{ cancel_info.pnr_number }}</span>
+                         <span class="detail-item"><strong>Transport:</strong> {{ cancel_info.transport_name }} ({{ cancel_info.transport_type|capitalize }})</span>
+                         <span class="detail-item"><strong>From:</strong> {{ cancel_info.source_station_name }}</span>
+                         <span class="detail-item"><strong>To:</strong> {{ cancel_info.destination_station_name }}</span>
+                         <span class="detail-item"><strong>Original Departure:</strong> {{ cancel_info.departure_time.strftime('%Y-%m-%d %H:%M') if cancel_info.departure_time else 'N/A' }}</span>
+                         <span class="detail-item"><strong>Cancelled On:</strong> {{ cancel_info.cancellation_date.strftime('%Y-%m-%d %H:%M') if cancel_info.cancellation_date else 'N/A' }}</span>
+                         <span class="detail-item"><strong>Booking Status:</strong> <span style="color: #dc3545; font-weight:bold;">Cancelled</span></span>
+                         <!-- <span class="detail-item"><strong>Refund Status:</strong> <span style="font-weight: bold; color: {% if cancel_info.refund_status == 'completed' %}#28a745{% elif cancel_info.refund_status == 'pending' or cancel_info.refund_status == 'not-confirmed' %}#ffc107{% elif cancel_info.refund_status == 'rejected' or cancel_info.refund_status == 'non-refundable'%}#dc3545{% else %}#ccc{% endif %};">{{ cancel_info.refund_status|replace('-', ' ')|capitalize if cancel_info.refund_status else 'N/A' }}</span></span> -->
+                         <span class="detail-item"><strong>Refund Status:</strong> 
+                            {% set status_color = '#ccc' %}
+                            {% if cancel_info and cancel_info.refund_status %}
+                                {% if cancel_info.refund_status == 'completed' %}
+                                    {% set status_color = '#28a745' %}
+                                {% elif cancel_info.refund_status == 'pending' or cancel_info.refund_status == 'not-confirmed' %}
+                                    {% set status_color = '#ffc107' %}
+                                {% elif cancel_info.refund_status == 'rejected' or cancel_info.refund_status == 'non-refundable' %}
+                                    {% set status_color = '#dc3545' %}
+                                {% endif %}
+                            {% endif %}
+                            <span style="font-weight: bold; color: {{ status_color }};">
+                                {% if cancel_info and cancel_info.refund_status %}
+                                    {{ cancel_info.refund_status|replace('-', ' ')|capitalize }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </span>
+                          {% if cancel_info.refund_amount is not none %}
+                         <span class="detail-item"><strong>Refund Amount:</strong> ₹{{ '%.2f'|format(cancel_info.refund_amount) }}</span>
+                         {% endif %}
+                    </div>
+                    <div></div> </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-results">You have no cancellation history.</p>
+        {% endif %}
+    </div>
+
+    <script>
+        function confirmCancel(pnr) {
+            // Simple confirmation dialog
+            return confirm(`Are you sure you want to cancel booking ${pnr}? This action cannot be undone.`);
+        }
+    </script>
+
+</body>
+</html>

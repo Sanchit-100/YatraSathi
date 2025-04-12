@@ -22,6 +22,12 @@
       margin: 0 auto;
       text-align: center;
     }
+     .user-info { /* Added style for username */
+       text-align: right;
+       margin-bottom: 1rem;
+       color: #ccc;
+       font-size: 0.9rem;
+     }
     h2 {
       margin-bottom: 2rem;
       color: #0ff;
@@ -29,7 +35,7 @@
     }
     .cards {
       display: grid;
-      /* Adjust grid columns for 5 items */
+      /* Adjust grid columns for potentially 6 items */
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 1.5rem;
     }
@@ -43,7 +49,12 @@
       cursor: pointer;
       text-decoration: none; /* Ensure cards are not underlined if wrapped in <a> */
       color: inherit; /* Inherit text color */
-      display: block; /* Make the card act like a block link */
+      display: flex; /* Use flexbox */
+      flex-direction: column; /* Stack content vertically */
+      justify-content: center; /* Center content vertically */
+      align-items: center; /* Center content horizontally */
+      min-height: 150px; /* Ensure cards have a minimum height */
+      text-align: center; /* Center text inside card */
     }
     .card:hover {
       transform: translateY(-5px);
@@ -70,27 +81,53 @@
     .logout:hover {
       background: #c00;
     }
+     @media (max-width: 480px) { /* Adjust card size for smaller screens */
+        .cards {
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        }
+         .card {
+            min-height: 120px;
+        }
+    }
+    /* Flash Message Styling */
+    .flash-messages { margin-bottom: 1.5rem; text-align: center; }
+    .flash-messages ul { list-style: none; padding: 0; }
+    .flash-messages li {
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+    .flash-success { background: rgba(0, 255, 0, 0.15); color: #80ff80; border: 1px solid rgba(0, 255, 0, 0.3); }
+    .flash-error { background: rgba(255, 0, 0, 0.15); color: #ff8080; border: 1px solid rgba(255, 0, 0, 0.3); }
+    .flash-info { background: rgba(0, 123, 255, 0.15); color: #80c0ff; border: 1px solid rgba(0, 123, 255, 0.3); }
+
   </style>
 </head>
 <body>
   <div class="dashboard">
+    <div class="user-info">Logged in as: {{ username or 'Guest' }}</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-messages">
+        <ul>
+        {% for category, message in messages %}
+          <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    {% endwith %}
+
     <h2>Welcome to Your Dashboard</h2>
     <div class="cards">
        <a href="{{ url_for('booking') }}" class="card">
         <h3>Book Transport</h3>
-        <p>Search all active transports (Bus, Train, Flight).</p>
+        <p>Search & book buses, trains, or flights.</p>
       </a>
-      <a href="{{ url_for('flight_booking') }}" class="card">
-        <h3>Flight Booking</h3>
-        <p>View specific flight booking options.</p>
-      </a>
-      <a href="{{ url_for('train_booking') }}" class="card">
-        <h3>Train Booking</h3>
-        <p>View specific train booking options.</p>
-      </a>
-      <a href="{{ url_for('bus_booking') }}" class="card">
-        <h3>Bus Booking</h3>
-        <p>View specific bus booking options.</p>
+       <a href="{{ url_for('cancellation') }}" class="card"> <h3>My Bookings</h3>
+        <p>View active bookings & cancellation history.</p>
       </a>
       <a href="{{ url_for('profile') }}" class="card">
         <h3>My Profile</h3>
