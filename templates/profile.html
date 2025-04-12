@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Profile - YatraSathi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem;
+      overflow-y: auto; /* Allow scrolling if content overflows */
+    }
+
+    .profile-container {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 3rem;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 40px rgba(0, 255, 255, 0.2);
+      backdrop-filter: blur(20px);
+      width: 100%;
+      max-width: 600px; /* Increased width for more content */
+      margin-top: 2rem; /* Add some top margin */
+      margin-bottom: 2rem; /* Add some bottom margin */
+    }
+
+    h2, h3 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #0ff;
+      text-shadow: 0 0 5px #0ff;
+    }
+
+    hr {
+      border: none;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.2);
+      margin: 2rem 0;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    label {
+        font-weight: bold;
+        color: #ccc;
+        font-size: 0.9rem;
+    }
+
+    input {
+      padding: 0.9rem 1rem;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: box-shadow 0.3s ease;
+    }
+
+     input[readonly] { /* Style read-only fields differently */
+        background: rgba(255, 255, 255, 0.05);
+        cursor: not-allowed;
+        color: #aaa;
+    }
+
+
+    input::placeholder {
+      color: #ccc;
+    }
+
+    input:focus {
+      box-shadow: 0 0 8px #0ff;
+    }
+
+    button {
+      padding: 0.9rem 1rem;
+      background: #0ff;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s;
+      margin-top: 1rem; /* Add space above button */
+    }
+
+    button:hover {
+      background: #0cf;
+      transform: scale(1.05);
+    }
+
+    .refund-balance, .profile-section {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .refund-balance span, .profile-section span {
+        font-weight: bold;
+        color: #0ff;
+        font-size: 1.2rem;
+    }
+
+    .flash-messages {
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+
+    .flash-messages ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .flash-messages li {
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .flash-success {
+        background: rgba(0, 255, 0, 0.2);
+        color: #80ff80;
+    }
+
+    .flash-error {
+        background: rgba(255, 0, 0, 0.2);
+        color: #ff8080;
+    }
+
+    .dashboard-link {
+      display: block; /* Make it a block element */
+      text-align: center;
+      margin-top: 2rem;
+      color: #0ff;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .dashboard-link:hover {
+        color: #fff;
+        text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+      .profile-container {
+        padding: 2rem;
+      }
+      h2, h3 {
+          font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="profile-container">
+    <h2>My Profile</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-messages">
+        <ul>
+        {% for category, message in messages %}
+          <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="profile-section">
+        <h3>Account Details</h3>
+        <form method="POST" action="{{ url_for('update_profile') }}">
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input id="name" name="name" value="{{ user.name }}" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" value="{{ user.email }}" required>
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input id="phone" name="phone" value="{{ user.phone_number }}" required>
+          </div>
+          <button type="submit">Update Details</button>
+        </form>
+    </div>
+
+    <hr>
+
+    <div class="profile-section">
+        <h3>Change Password</h3>
+        <form method="POST" action="{{ url_for('change_password') }}">
+            <div class="form-group">
+                <label for="current_password">Current Password</label>
+                <input id="current_password" name="current_password" type="password" placeholder="Enter your current password" required>
+            </div>
+            <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input id="new_password" name="new_password" type="password" placeholder="Enter new password" required>
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input id="confirm_password" name="confirm_password" type="password" placeholder="Confirm new password" required>
+            </div>
+            <button type="submit">Change Password</button>
+        </form>
+    </div>
+
+    <hr>
+
+    <div class="refund-balance">
+      <h3>Refund Balance</h3>
+      <p>Your current refund balance is: <span>₹{{ "%.2f"|format(user.Refunds) }}</span></p>
+    </div>
+
+     <a href="{{ url_for('user_dashboard') }}" class="dashboard-link">← Back to Dashboard</a>
+
+  </div>
+
+</body>
+</html>
