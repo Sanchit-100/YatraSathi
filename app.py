@@ -1,19 +1,33 @@
 # File: app.py
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify # Added jsonify
-from flask_bcrypt import Bcrypt
+# Remove flask_bcrypt import if not used for hashing (as per current insecure implementation)
+# from flask_bcrypt import Bcrypt
 import mysql.connector
 from config import DB_CONFIG
+import os # Needed for potential file uploads
 import datetime # Import datetime
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
-bcrypt = Bcrypt(app)
+# bcrypt = Bcrypt(app) # Only if using bcrypt
+
+# Configuration for profile picture uploads (optional)
+# UPLOAD_FOLDER = 'static/profile_pics'
+# ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# def allowed_file(filename):
+#     return '.' in filename and \
+#            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def get_db_connection():
-    # Ensure dictionary=True for cursor results
-    return mysql.connector.connect(**DB_CONFIG)
-
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        return conn
+    except mysql.connector.Error as err:
+        flash(f"Database connection error: {err}", "error")
+        return None
 
 @app.route('/')
 def landing():
@@ -27,20 +41,32 @@ def login():
         password = request.form['password']
 
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True) # Ensure dictionary=True
+        if not conn:
+             return render_template('login.html') # Stay on login page if DB connection failed
 
-        cursor.execute("SELECT * FROM User WHERE email = %s", (email,))
-        user = cursor.fetchone()
+        cursor = conn.cursor(dictionary=True)
 
-        if user and user['password_hash'] == password: # Assuming plain text password for now
-            session['user'] = user['user_id']
-            session['user_name'] = user['name'] # Store user name in session
-            return redirect(url_for('user_dashboard'))
-        else:
-            flash('Invalid credentials.')
+        try:
+            cursor.execute("SELECT * FROM User WHERE email = %s", (email,))
+            user = cursor.fetchone()
 
-        cursor.close()
-        conn.close()
+            # !!! SECURITY WARNING: Storing and comparing passwords in plain text is highly insecure.
+            # Replace this with password hashing (e.g., using bcrypt) in a real application.
+            # Example with bcrypt (requires installing flask-bcrypt):
+            # if user and bcrypt.check_password_hash(user['password_hash'], password):
+            if user and user['password_hash'] == password: # Current insecure check
+                session['user'] = user['user_id']
+                session['user_name'] = user['name'] # Store name for convenience
+                flash('Logged in successfully!', 'success')
+                return redirect(url_for('user_dashboard'))
+            else:
+                flash('Invalid email or password.', 'error')
+
+        except mysql.connector.Error as err:
+            flash(f"Database error during login: {err}", "error")
+        finally:
+            cursor.close()
+            conn.close()
 
     return render_template('login.html')
 
@@ -53,37 +79,54 @@ def register():
         password = request.form['password']
         phone = request.form['phone']
 
-        hashed_pw = password  # Store plain text for now as per login logic
+        # !!! SECURITY WARNING: Store hashed password, not plain text.
+        # Example with bcrypt:
+        # hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+        hashed_pw = password  # Current insecure method
 
         conn = get_db_connection()
+        if not conn:
+             return render_template('register.html') # Stay on register page if DB connection failed
 
-        check_cursor = conn.cursor(dictionary=True)
-        check_cursor.execute("SELECT * FROM User WHERE email = %s OR phone_number = %s", (email, phone))
-        results = check_cursor.fetchall()
-        existing_user = results[0] if results else None
-        check_cursor.close()
+        try:
+            check_cursor = conn.cursor(dictionary=True)
+            check_cursor.execute("SELECT email, phone_number FROM User WHERE email = %s OR phone_number = %s", (email, phone))
+            existing_user = check_cursor.fetchone()
+            check_cursor.close()
 
-        if existing_user:
-            conn.close()
-            flash('ID already exists with same email or phone.')
-            return redirect(url_for('register'))
+            if existing_user:
+                if existing_user['email'] == email:
+                    flash('Email already exists.', 'error')
+                else:
+                    flash('Phone number already exists.', 'error')
+                conn.close()
+                return redirect(url_for('register'))
 
-        insert_cursor = conn.cursor(dictionary=True)
-        insert_cursor.execute("SELECT MAX(user_id) AS max_id FROM User")
-        result = insert_cursor.fetchone()
-        next_user_id = (result['max_id'] or 0) + 1
+            insert_cursor = conn.cursor(dictionary=True)
+            # It's generally safer to let the DB auto-increment IDs if possible.
+            # Fetching MAX(id) can have race conditions. Assuming manual ID for now.
+            insert_cursor.execute("SELECT MAX(user_id) AS max_id FROM User")
+            result = insert_cursor.fetchone()
+            next_user_id = (result['max_id'] or 0) + 1
 
-        insert_cursor.execute("""
-            INSERT INTO User (user_id, name, email, password_hash, phone_number, user_type, created_at, Refunds)
-            VALUES (%s, %s, %s, %s, %s, 'regular', NOW(), 0.00)
-        """, (next_user_id, name, email, hashed_pw, phone))
+            insert_cursor.execute("""
+                INSERT INTO User (user_id, name, email, password_hash, phone_number, user_type, created_at, Refunds)
+                VALUES (%s, %s, %s, %s, %s, 'regular', NOW(), 0.00)
+            """, (next_user_id, name, email, hashed_pw, phone))
 
-        conn.commit()
-        insert_cursor.close()
-        conn.close()
+            conn.commit()
+            insert_cursor.close()
+            flash('Registered successfully. Please login.', 'success')
+            return redirect(url_for('login'))
 
-        flash('Registered successfully. Please login.')
-        return redirect(url_for('login'))
+        except mysql.connector.Error as err:
+             flash(f"Database error during registration: {err}", "error")
+             # Rollback in case of error during insert
+             if conn.is_connected():
+                 conn.rollback()
+        finally:
+            if conn.is_connected():
+                 conn.close()
 
     return render_template('register.html')
 
@@ -91,9 +134,11 @@ def register():
 @app.route('/user/dashboard')
 def user_dashboard():
     if 'user' not in session:
+        flash('Please login to access the dashboard.', 'error')
         return redirect(url_for('login'))
+    # Pass user name to dashboard template if needed
     # Pass username to the template
-    return render_template('user_dashboard.html', username=session.get('user_name'))
+    return render_template('user_dashboard.html', user_name=session.get('user_name'), username=session.get('user_name'))
 
 # --- NEW BOOKING ROUTE ---
 @app.route('/booking', methods=['GET'])
@@ -206,32 +251,141 @@ def bus_booking():
 # --- End Placeholder Routes ---
 
 
+# --- Profile Routes ---
 @app.route('/profile')
 def profile():
     if 'user' not in session:
+        flash('Please login to view your profile.', 'error')
         return redirect(url_for('login'))
 
     user_id = session['user']
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT name, email, phone_number, user_type, created_at, Refunds FROM User WHERE user_id = %s", (user_id,))
-    user_data = cursor.fetchone()
-    cursor.close()
-    conn.close()
-
-    if not user_data:
-        flash("User data not found.")
+    if not conn:
+        # Redirect to dashboard or show error if DB fails
+        flash("Could not connect to the database to load profile.", "error")
         return redirect(url_for('user_dashboard'))
 
-    # TODO: Create a proper profile.html template to display this data
-    # For now, just render the placeholder
-    return render_template('profile.html', user=user_data, username=session.get('user_name'))
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT user_id, name, email, phone_number, Refunds FROM User WHERE user_id = %s", (user_id,))
+        user_data = cursor.fetchone()
+        if not user_data:
+            flash("User profile not found.", "error")
+            session.clear() # Log out user if profile doesn't exist
+            return redirect(url_for('login'))
+
+        return render_template('profile.html', user=user_data)
+
+    except mysql.connector.Error as err:
+        flash(f"Error loading profile: {err}", "error")
+        return redirect(url_for('user_dashboard')) # Redirect on error
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/profile/update', methods=['POST'])
+def update_profile():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user']
+    name = request.form['name']
+    email = request.form['email']
+    phone = request.form['phone']
+
+    conn = get_db_connection()
+    if not conn:
+        flash("Database connection error. Could not update profile.", "error")
+        return redirect(url_for('profile'))
+
+    cursor = conn.cursor()
+    try:
+        # Check if email or phone is already taken by *another* user
+        cursor.execute("SELECT user_id FROM User WHERE (email = %s OR phone_number = %s) AND user_id != %s", (email, phone, user_id))
+        existing = cursor.fetchone()
+        if existing:
+             flash("Email or Phone number is already in use by another account.", "error")
+             return redirect(url_for('profile'))
+
+        # Update user details
+        cursor.execute("UPDATE User SET name = %s, email = %s, phone_number = %s WHERE user_id = %s",
+                       (name, email, phone, user_id))
+        conn.commit()
+        session['user_name'] = name # Update session name if changed
+        flash("Profile updated successfully!", "success")
+
+    except mysql.connector.Error as err:
+        conn.rollback() # Rollback on error
+        flash(f"Error updating profile: {err}", "error")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('profile'))
+
+
+@app.route('/profile/change_password', methods=['POST'])
+def change_password():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user']
+    current_password = request.form['current_password']
+    new_password = request.form['new_password']
+    confirm_password = request.form['confirm_password']
+
+    if new_password != confirm_password:
+        flash("New passwords do not match.", "error")
+        return redirect(url_for('profile'))
+
+    if not new_password: # Basic validation
+         flash("New password cannot be empty.", "error")
+         return redirect(url_for('profile'))
+
+    conn = get_db_connection()
+    if not conn:
+        flash("Database connection error. Could not change password.", "error")
+        return redirect(url_for('profile'))
+
+    cursor = conn.cursor(dictionary=True) # Use dictionary cursor to get hash easily
+    try:
+        cursor.execute("SELECT password_hash FROM User WHERE user_id = %s", (user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+             flash("User not found.", "error")
+             return redirect(url_for('login'))
+
+        # !!! SECURITY WARNING: Compare plain text passwords - highly insecure. Use hashing.
+        # Example with bcrypt:
+        # if bcrypt.check_password_hash(user['password_hash'], current_password):
+        #     new_hashed_pw = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        if user['password_hash'] == current_password: # Current insecure check
+            # !!! SECURITY WARNING: Store hashed password.
+            new_hashed_pw = new_password # Current insecure method
+
+            update_cursor = conn.cursor()
+            update_cursor.execute("UPDATE User SET password_hash = %s WHERE user_id = %s", (new_hashed_pw, user_id))
+            conn.commit()
+            update_cursor.close()
+            flash("Password updated successfully!", "success")
+        else:
+            flash("Incorrect current password.", "error")
+
+    except mysql.connector.Error as err:
+        conn.rollback() # Rollback on error
+        flash(f"Error changing password: {err}", "error")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('profile'))
 
 
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('You have been logged out.')
+    flash('You have been logged out.', 'success')
     return redirect(url_for('login'))
 
 
