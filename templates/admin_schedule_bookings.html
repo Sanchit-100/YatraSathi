@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bookings for Schedule {{ schedule_id }} - Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Styles copied and adapted from admin_dashboard.html */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #fff; min-height: 100vh; padding: 2rem; font-size: 14px; }
+        .container { max-width: 1200px; margin: 0 auto; background: rgba(249, 249, 249, 0.05); padding: 1.5rem 2rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); margin-bottom: 2rem; }
+        h1 { text-align: center; margin-bottom: 1.5rem; color: #0ff; text-shadow: 0 0 5px #0ff; }
+        p { color: #ccc; line-height: 1.6; margin-bottom: 1rem; }
+        p strong { color: #eee; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; background: rgba(255, 255, 255, 0.08); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.9em; }
+        th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.1); vertical-align: middle;}
+        th { background: rgba(0, 255, 255, 0.1); color: #0ff; white-space: nowrap; }
+
+        .action-buttons button, .action-buttons a { padding: 0.3rem 0.6rem; font-size: 0.8em; margin-right: 0.3rem; border-radius: 5px; cursor: pointer; text-decoration: none; color: #fff; font-weight: bold; display: inline-block; white-space: nowrap; margin-top: 2px; margin-bottom: 2px; border: none; }
+        .btn-cancel { background-color: #dc3545; } /* Specific style for cancel button */
+
+        .back-link { color: #0ff; margin-bottom: 1.5rem; display: inline-block; text-decoration: none; font-weight: bold; }
+        .back-link:hover { text-decoration: underline; }
+
+        .flash-messages { margin-bottom: 1rem; text-align: center; }
+        .flash-messages ul { list-style: none; padding: 0; }
+        .flash-messages li { padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: bold; }
+        .flash-success { background: rgba(0, 255, 0, 0.2); color: #80ff80; }
+        .flash-error { background: rgba(255, 0, 0, 0.2); color: #ff8080; }
+        .flash-warning { background: rgba(255, 165, 0, 0.2); color: #ffcc80; } /* Added warning style */
+        .flash-info { background: rgba(0, 150, 255, 0.2); color: #80d4ff; } /* Added info style */
+
+        .no-results { text-align: center; padding: 1rem; color: #aaa; margin-top: 1rem; }
+
+         /* Responsive adjustments (optional, copy if needed) */
+        @media (max-width: 768px) {
+             table { font-size: 0.85em; }
+             th, td { padding: 0.5rem 0.6rem; }
+             .action-buttons button, .action-buttons a { font-size: 0.75em; padding: 0.2rem 0.4rem; }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bookings for Schedule ID: {{ schedule_id }}</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="back-link">← Back to Admin Dashboard</a>
+
+        {% if schedule_info %}
+            <p>
+                <strong>Transport:</strong> {{ schedule_info.transport_name }} <br>
+                <strong>Route:</strong> {{ schedule_info.source_station_name }} to {{ schedule_info.destination_station_name }} <br>
+                <strong>Departure:</strong> {{ schedule_info.departure_time.strftime('%Y-%m-%d %H:%M') }}
+            </p>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div class="flash-messages">
+            <ul>
+            {% for category, message in messages %}
+              <li class="flash-{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        {% endwith %}
+
+
+        {% if bookings %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>User Name</th>
+                        <th>User Email</th>
+                        <th>Seat</th>
+                        <th>Seat Class</th>
+                        <th>Price</th>
+                        <th>Booking Date</th>
+                        <th>PNR</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                    <tr>
+                        <td>{{ booking.booking_id }}</td>
+                        <td>{{ booking.user_name }}</td>
+                        <td>{{ booking.user_email }}</td>
+                        <td>{{ booking.seat_number }}</td>
+                        <td>{{ booking.seat_class | capitalize }}</td>
+                        <td>₹{{ "%.2f"|format(booking.seat_price) }}</td>
+                        <td>{{ booking.booking_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ booking.pnr_number }}</td>
+                        <td>{{ booking.status | replace('_', ' ') | title }}</td>
+                        <td class="action-buttons"> {# Added class here #}
+                            {% if booking.status == 'confirmed' %}
+                            <form method="POST" action="{{ url_for('admin_cancel_specific_booking', booking_id=booking.booking_id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to cancel booking {{ booking.booking_id }} and issue a refund?');">
+                                <button type="submit" class="btn-cancel">Cancel & Refund</button>
+                            </form>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="no-results">No bookings found for this schedule.</p>
+        {% endif %}
+    </div> </body>
+</html>

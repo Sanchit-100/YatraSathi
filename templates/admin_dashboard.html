@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - YatraSathi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Existing styles ... */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #fff; min-height: 100vh; padding: 2rem; font-size: 14px; } /* Base font size */
+        .container { max-width: 1400px; margin: 0 auto; } /* Wider container */
+        h1, h2, h3 { text-align: center; margin-bottom: 1.5rem; color: #0ff; text-shadow: 0 0 5px #0ff; }
+        h2 { margin-top: 2rem; } h3 { margin-top: 1rem; margin-bottom: 0.8rem; font-size: 1.1em; text-align: left; color: #eee; }
+        .admin-actions, .filter-section, .transport-section { background: rgba(249, 249, 249, 0.05); padding: 1.5rem 2rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); margin-bottom: 2rem; }
+        .admin-actions h2, .filter-section h2 { margin-bottom: 1rem; text-align: left; margin-top: 0; }
+        .action-form, .filter-form { margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+        .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+        .action-form label, .filter-form label { display: block; margin-bottom: 0; color: #ccc; font-size: 0.9em; }
+        .action-form input, .action-form select, .filter-form input, .filter-form select { padding: 0.7rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.1); color: #fff; font-size: 0.9em; }
+        .action-form button, .filter-form button, .filter-form a { padding: 0.7rem 1.2rem; background: #0ff; color: #000; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; border: none; border-radius: 50px; font-size: 0.9em; text-decoration: none; display: inline-block; height: fit-content; }
+        .filter-form a { background: #6c757d; color: #fff; }
+        .action-form button:hover, .filter-form button:hover, .filter-form a:hover { background: #0cf; transform: scale(1.02); }
+        .filter-form a:hover { background: #5a6268; }
+        .filter-form select {
+            background-color: #302b63; /* Change this to your desired color */
+            color: #fff; /* Ensure the text remains visible */
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; background: rgba(255, 255, 255, 0.08); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.9em; } /* Smaller font in table */
+        th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.1); } /* Reduced padding */
+        th { background: rgba(0, 255, 255, 0.1); color: #0ff; white-space: nowrap; } /* Prevent header wrap */
+        td { vertical-align: middle; }
+        .action-buttons button, .action-buttons a { padding: 0.3rem 0.6rem; font-size: 0.8em; margin-right: 0.3rem; border-radius: 5px; cursor: pointer; text-decoration: none; color: #000; font-weight: bold; display: inline-block; white-space: nowrap; margin-top: 2px; margin-bottom: 2px; } /* Smaller buttons, add vertical margin */
+        .btn-edit { background-color: #ffc107; }
+        .btn-delete { background-color: #dc3545; color: #fff; }
+        .btn-price { background-color: #28a745; color: #fff; }
+        .btn-schedule-edit { background-color: #17a2b8; color: #fff; }
+        .btn-schedule-cancel { background-color: #ff6b6b; color: #fff; } /* Cancel button color */
+
+
+        .logout-link { display: block; text-align: right; margin-bottom: 1rem; }
+        .logout-link a { color: #ff4d4d; text-decoration: none; font-weight: bold; padding: 0.5rem 1rem; border: 1px solid #ff4d4d; border-radius: 5px; transition: background-color 0.3s, color 0.3s; }
+        .logout-link a:hover { background-color: #ff4d4d; color: #fff; }
+        .flash-messages { margin-bottom: 1rem; text-align: center; }
+        .flash-messages ul { list-style: none; padding: 0; }
+        .flash-messages li { padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: bold; }
+        .flash-success { background: rgba(0, 255, 0, 0.2); color: #80ff80; }
+        .flash-error { background: rgba(255, 0, 0, 0.2); color: #ff8080; }
+        .no-results { text-align: center; padding: 1rem; color: #aaa; }
+        .schedule-table { margin-top: 0.5rem; margin-left: 2rem; width: calc(100% - 2rem); } /* Indent schedule table */
+        .schedule-table th { background-color: rgba(255, 255, 255, 0.1); }
+        .transport-details-bar { display: flex; justify-content: space-between; align-items: center; background-color: rgba(0, 255, 255, 0.05); padding: 0.8rem 1.5rem; border-radius: 8px; margin-bottom: 0.5rem; flex-wrap: wrap; } /* Allow wrap */
+        .transport-details-bar span { margin-right: 1.5rem; font-size: 0.95em; line-height: 1.5;} /* Ensure vertical spacing */
+        .transport-details-bar strong { color: #0ff; }
+        .transport-details-bar .action-buttons { margin-left: auto;} /* Push buttons to right */
+
+
+        @media (max-width: 992px) { /* Adjust for medium screens */
+            .transport-details-bar { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+             .transport-details-bar .action-buttons { margin-left: 0; width: 100%; text-align: left; margin-top: 0.5rem; }
+            .schedule-table { margin-left: 1rem; width: calc(100% - 1rem); }
+        }
+        @media (max-width: 768px) {
+            .action-form, .filter-form { flex-direction: column; align-items: stretch; }
+            .action-form > *, .filter-form > * { width: 100%; margin-right: 0; }
+             table, .schedule-table { font-size: 0.85em; } /* Further reduce font size */
+             th, td { padding: 0.5rem 0.6rem; }
+             .action-buttons button, .action-buttons a { font-size: 0.75em; padding: 0.2rem 0.4rem; }
+             .schedule-table { margin-left: 0; width: 100%; }
+             .transport-details-bar span { width: 100%; margin-right: 0; } /* Stack details vertically */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logout-link"><a href="{{ url_for('admin_logout') }}">Logout Admin</a></div>
+        <h1>Admin Dashboard</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %} <div class="flash-messages"><ul> {% for category, message in messages %} <li class="flash-{{ category }}">{{ message }}</li> {% endfor %} </ul></div> {% endif %}
+        {% endwith %}
+
+        <div class="admin-actions">
+             <h2>Add New Transport</h2>
+             <form method="POST" action="{{ url_for('admin_add_transport') }}" class="action-form">
+                 <div class="form-group"><label for="type">Type:</label><select id="type" name="type" required><option value="bus">Bus</option><option value="train">Train</option><option value="flight">Flight</option></select></div>
+                 <div class="form-group"><label for="name">Name:</label><input type="text" id="name" name="name" required></div>
+                 <div class="form-group"><label for="operator">Operator:</label><input type="text" id="operator" name="operator" required></div>
+                 <div class="form-group"><label for="total_seats">Total Seats:</label><input type="number" id="total_seats" name="total_seats" required min="1"></div>
+                 <div class="form-group"><label for="status">Status:</label><select id="status" name="status" required><option value="active">Active</option><option value="maintenance">Maintenance</option><option value="inactive">Inactive</option></select></div>
+                 <button type="submit">Add Transport</button>
+             </form>
+        </div>
+
+        <div class="filter-section">
+            <h2>Filter Transports</h2>
+            <form method="GET" action="{{ url_for('admin_dashboard') }}" class="filter-form">
+                <div class="form-group"><label for="search_term">Search Name/Operator:</label><input type="text" id="search_term" name="search_term" value="{{ search_term or '' }}" placeholder="Enter name or operator"></div>
+                <div class="form-group"><label for="filter_type">Type:</label><select id="filter_type" name="filter_type"><option value="" {% if not filter_type %}selected{% endif %}>Any Type</option><option value="bus" {% if filter_type == 'bus' %}selected{% endif %}>Bus</option><option value="train" {% if filter_type == 'train' %}selected{% endif %}>Train</option><option value="flight" {% if filter_type == 'flight' %}selected{% endif %}>Flight</option></select></div>
+                <div class="form-group"><label for="filter_status">Status:</label><select id="filter_status" name="filter_status"><option value="" {% if not filter_status %}selected{% endif %}>Any Status</option><option value="active" {% if filter_status == 'active' %}selected{% endif %}>Active</option><option value="maintenance" {% if filter_status == 'maintenance' %}selected{% endif %}>Maintenance</option><option value="inactive" {% if filter_status == 'inactive' %}selected{% endif %}>Inactive</option></select></div>
+                <button type="submit">Filter</button>
+                <a href="{{ url_for('admin_dashboard') }}">Clear</a>
+            </form>
+        </div>
+
+        <h2>Manage Transports & Schedules</h2>
+        {% if transports_with_schedules %}
+            {% for transport_id, data in transports_with_schedules.items() %}
+            <div class="transport-section">
+                 <div class="transport-details-bar">
+                     <span><strong>ID:</strong> {{ transport_id }}</span>
+                     <span><strong>Type:</strong> {{ data.details.type | capitalize }}</span>
+                     <span><strong>Name:</strong> {{ data.details.name }}</span>
+                     <span><strong>Operator:</strong> {{ data.details.operator }}</span>
+                     <span><strong>Seats:</strong> {{ data.details.total_seats }}</span>
+                     <span><strong>Status:</strong> {{ data.details.status | capitalize }}</span>
+                     <div class="action-buttons">
+                         <a href="{{ url_for('admin_edit_prices', transport_id=transport_id) }}" class="btn-price">Edit Prices</a>
+                     </div>
+                 </div>
+
+                 {% if data.schedules %}
+                 <table class="schedule-table">
+                     <thead>
+                         <tr>
+                             <th>Sch. ID</th>
+                             <th>From</th>
+                             <th>To</th>
+                             <th>Departure</th>
+                             <th>Arrival</th>
+                             <th>Duration (hrs)</th>
+                             <th>Actions</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         {% for schedule in data.schedules %}
+                         <tr>
+                             <td>{{ schedule.schedule_id }}</td>
+                             <td>{{ schedule.source_station_name }}</td>
+                             <td>{{ schedule.destination_station_name }}</td>
+                             <td>{{ schedule.departure_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                             <td>{{ schedule.arrival_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                             <td>{{ '%.2f'|format(schedule.duration_hours) }}</td>
+                             <td class="action-buttons">
+                                <a href="{{ url_for('admin_edit_schedule', schedule_id=schedule.schedule_id) }}" class="btn-schedule-edit">Edit</a>
+                                {# --- Cancel Schedule Button Form --- #}
+                                <form method="POST" action="{{ url_for('admin_cancel_schedule', schedule_id=schedule.schedule_id) }}" style="display:inline;" onsubmit="return confirm('Are you sure...?');">
+                                    <button type="submit" class="btn-schedule-cancel">Cancel Schedule</button>
+                                </form>
+                                {# --- NEW: View Bookings Button --- #}
+                                <a href="{{ url_for('admin_view_schedule_bookings', schedule_id=schedule.schedule_id) }}" class="btn-view-bookings" style="background-color: #007bff; color: white;">View Bookings</a> {# Add appropriate class/style #}
+                            </td>
+                         </tr>
+                         {% endfor %}
+                     </tbody>
+                 </table>
+                 {% else %}
+                 <p class="no-results" style="margin-left: 2rem;">No schedules found for this transport.</p>
+                 {% endif %}
+             </div>
+             {% endfor %}
+        {% else %}
+             <p class="no-results">No transports found matching your filters.</p>
+        {% endif %}
+
+    </div> {# End container #}
+</body>
+</html>

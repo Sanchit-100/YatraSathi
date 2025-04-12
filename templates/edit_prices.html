@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Prices - Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Similar styles to dashboard/edit_schedule */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #fff; min-height: 100vh; padding: 2rem; font-size: 14px; }
+        .container { max-width: 800px; margin: 2rem auto; background: rgba(249, 249, 249, 0.05); padding: 2rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+        h1 { text-align: center; margin-bottom: 0.5rem; color: #0ff; text-shadow: 0 0 5px #0ff; }
+        h2 { text-align: center; margin-bottom: 1.5rem; color: #eee; font-size: 1.2em; font-weight: normal;}
+        form { margin-top: 1rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 0.7rem 1rem; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        th { background: rgba(0, 255, 255, 0.1); color: #0ff; white-space: nowrap; }
+        td input[type="number"] {
+            width: 100px; /* Fixed width for price input */
+            padding: 0.5rem;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 0.95em;
+        }
+        td input[type="number"]:focus { outline: none; border-color: #0ff; box-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
+        .form-actions { display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; }
+        button, .cancel-link { padding: 0.8rem 1.5rem; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; border: none; border-radius: 50px; font-size: 1rem; text-decoration: none; display: inline-block; }
+        button { background: #0ff; color: #000; }
+        .cancel-link { background: #6c757d; color: #fff; text-align: center; }
+        button:hover { background: #0cf; transform: scale(1.05); }
+        .cancel-link:hover { background: #5a6268; }
+         .flash-messages { margin-bottom: 1rem; text-align: center; }
+        .flash-messages ul { list-style: none; padding: 0; }
+        .flash-messages li { padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: bold; background: rgba(255, 0, 0, 0.2); color: #ff8080; } /* Only error shown here */
+        .no-seats { text-align: center; padding: 1rem; color: #aaa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Edit Seat Prices</h1>
+        <h2>{{ transport.name }} ({{ transport.type | capitalize }} - ID: {{ transport_id }})</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div class="flash-messages">
+            <ul>
+            {% for category, message in messages %}
+               {% if category == 'error' %} {# Only display errors on this form #}
+               <li class="flash-{{ category }}">{{ message }}</li>
+               {% endif %}
+            {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        {% endwith %}
+
+        {% if seats %}
+        <form method="POST">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Seat ID</th>
+                        <th>Number</th>
+                        <th>Class</th>
+                        <th>Current Price (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for seat in seats %}
+                    <tr>
+                        <td>{{ seat.seat_id }}</td>
+                        <td>{{ seat.seat_number }}</td>
+                        <td>{{ seat.seat_class | capitalize }}</td>
+                        <td>
+                            <input type="number"
+                                   name="price_{{ seat.seat_id }}" {# Name includes seat_id #}
+                                   value="{{ '%.2f'|format(seat.price) }}"
+                                   min="0" step="0.01" required>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="form-actions">
+                <button type="submit">Update All Prices</button>
+                <a href="{{ url_for('admin_dashboard') }}" class="cancel-link">Cancel</a>
+            </div>
+        </form>
+        {% else %}
+        <p class="no-seats">No seats found defined for this transport. Add seats via database interface.</p>
+        <div class="form-actions">
+             <a href="{{ url_for('admin_dashboard') }}" class="cancel-link">Back to Dashboard</a>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
