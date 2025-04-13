@@ -72,7 +72,9 @@
 </head>
 <body>
     <div class="container">
-        <div class="logout-link"><a href="{{ url_for('admin_logout') }}">Logout Admin</a></div>
+        <div class="logout-link"><a href="{{ url_for('admin_logout') }}">Logout Admin</a>
+            <a href="{{ url_for('admin_sales_report') }}" style="background-color: #007bff; border-color: #007bff; margin-left: 10px;">Sales Reports</a>
+        </div>
         <h1>Admin Dashboard</h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
