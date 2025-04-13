@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add New Schedule - Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Using similar styles to dashboard/edit_schedule */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #fff; min-height: 100vh; padding: 2rem; }
+        .container { max-width: 700px; margin: 2rem auto; background: rgba(249, 249, 249, 0.05); padding: 2rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+        h1 { text-align: center; margin-bottom: 1.5rem; color: #0ff; text-shadow: 0 0 5px #0ff; }
+        .transport-info { margin-bottom: 1.5rem; line-height: 1.6; color: #ccc; background: rgba(0, 255, 255, 0.05); padding: 1rem; border-radius: 8px; }
+        .transport-info strong { color: #eee; }
+        form { display: flex; flex-direction: column; gap: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        label { font-weight: bold; color: #ccc; font-size: 0.9rem; }
+        select, input[type="datetime-local"] {
+             padding: 0.8rem;
+             border-radius: 8px;
+             border: 1px solid rgba(255, 255, 255, 0.2);
+             background: rgba(255, 255, 255, 0.1);
+             color: #fff;
+             font-size: 1rem;
+             font-family: 'Poppins', sans-serif;
+             cursor: pointer;
+        }
+        select option { background-color: #302b63; color: #fff; } /* Style dropdown options */
+        select:focus, input[type="datetime-local"]:focus {
+            outline: none;
+            border-color: #0ff;
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; opacity: 0.8; }
+        .form-actions { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; }
+        button, .cancel-link { padding: 0.8rem 1.5rem; font-weight: bold; cursor: pointer; transition: background 0.3s, transform 0.2s; border: none; border-radius: 50px; font-size: 1rem; text-decoration: none; display: inline-block; }
+        button { background: #0ff; color: #000; }
+        .cancel-link { background: #6c757d; color: #fff; text-align: center; }
+        button:hover { background: #0cf; transform: scale(1.05); }
+        .cancel-link:hover { background: #5a6268; }
+        .flash-messages { margin-bottom: 1rem; text-align: center; }
+        .flash-messages ul { list-style: none; padding: 0; }
+        .flash-messages li { padding: 10px; border-radius: 8px; margin-top: 10px; font-weight: bold; }
+        .flash-error { background: rgba(255, 0, 0, 0.2); color: #ff8080; }
+        .flash-success { background: rgba(0, 255, 0, 0.2); color: #80ff80; } /* Add success style */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Add New Schedule</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div class="flash-messages">
+            <ul>
+            {% for category, message in messages %}
+              <li class="flash-{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        {% endwith %}
+
+        <div class="transport-info">
+            <p><strong>Transport ID:</strong> {{ transport.transport_id }}</p>
+            <p><strong>Name:</strong> {{ transport.name }}</p>
+            <p><strong>Type:</strong> {{ transport.type | capitalize }}</p>
+        </div>
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="source_station_id">Source Station:</label>
+                <select id="source_station_id" name="source_station_id" required>
+                    <option value="" disabled selected>-- Select Source --</option>
+                    {% for station in stations %}
+                    <option value="{{ station.station_id }}">{{ station.name }} (ID: {{ station.station_id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="destination_station_id">Destination Station:</label>
+                <select id="destination_station_id" name="destination_station_id" required>
+                    <option value="" disabled selected>-- Select Destination --</option>
+                     {% for station in stations %}
+                    <option value="{{ station.station_id }}">{{ station.name }} (ID: {{ station.station_id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="departure_time">Departure Time:</label>
+                <input type="datetime-local" id="departure_time" name="departure_time" required>
+            </div>
+            <div class="form-group">
+                <label for="arrival_time">Arrival Time:</label>
+                <input type="datetime-local" id="arrival_time" name="arrival_time" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit">Add Schedule</button>
+                <a href="{{ url_for('admin_dashboard') }}" class="cancel-link">Cancel</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

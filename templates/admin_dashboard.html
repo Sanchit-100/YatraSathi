@@ -106,17 +106,19 @@
         {% if transports_with_schedules %}
             {% for transport_id, data in transports_with_schedules.items() %}
             <div class="transport-section">
-                 <div class="transport-details-bar">
-                     <span><strong>ID:</strong> {{ transport_id }}</span>
-                     <span><strong>Type:</strong> {{ data.details.type | capitalize }}</span>
-                     <span><strong>Name:</strong> {{ data.details.name }}</span>
-                     <span><strong>Operator:</strong> {{ data.details.operator }}</span>
-                     <span><strong>Seats:</strong> {{ data.details.total_seats }}</span>
-                     <span><strong>Status:</strong> {{ data.details.status | capitalize }}</span>
-                     <div class="action-buttons">
-                         <a href="{{ url_for('admin_edit_prices', transport_id=transport_id) }}" class="btn-price">Edit Prices</a>
-                     </div>
-                 </div>
+                <div class="transport-details-bar">
+                    <span><strong>ID:</strong> {{ transport_id }}</span>
+                    <span><strong>Type:</strong> {{ data.details.type | capitalize }}</span>
+                    <span><strong>Name:</strong> {{ data.details.name }}</span>
+                    <span><strong>Operator:</strong> {{ data.details.operator }}</span>
+                    <span><strong>Seats:</strong> {{ data.details.total_seats }}</span>
+                    <span><strong>Status:</strong> {{ data.details.status | capitalize }}</span>
+                    <div class="action-buttons">
+                        <a href="{{ url_for('admin_edit_prices', transport_id=transport_id) }}" class="btn-price">Edit Prices</a>
+                        {# NEW Add Schedule Button #}
+                        <a href="{{ url_for('admin_add_schedule_form', transport_id=transport_id) }}" class="btn-schedule-edit" style="background-color: #ff9800;">Add Schedule</a> {# Added the new button here #}
+                    </div>
+                </div>
 
                  {% if data.schedules %}
                  <table class="schedule-table">
