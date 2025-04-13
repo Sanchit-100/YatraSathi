@@ -668,6 +668,126 @@ def admin_view_schedule_bookings(schedule_id):
 
     return render_template('admin_schedule_bookings.html', bookings=bookings, schedule_info=schedule_info, schedule_id=schedule_id, username=session.get('admin_user_name'))
 
+@app.route('/admin/add_schedule/<int:transport_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_add_schedule_form(transport_id):
+    conn = get_db_connection()
+    if not conn:
+        flash("Database connection failed.", "error")
+        return redirect(url_for('admin_dashboard'))
+
+    cursor = conn.cursor(dictionary=True)
+    transport = None
+    stations = []
+
+    # Fetch transport details and stations for the form
+    try:
+        cursor.execute("SELECT transport_id, name, type FROM Transport WHERE transport_id = %s", (transport_id,))
+        transport = cursor.fetchone()
+        if not transport:
+            flash(f"Transport ID {transport_id} not found.", "error")
+            cursor.close(); conn.close()
+            return redirect(url_for('admin_dashboard'))
+
+        cursor.execute("SELECT station_id, name FROM Station ORDER BY name")
+        stations = cursor.fetchall()
+
+    except mysql.connector.Error as err:
+        app.logger.error(f"Error fetching data for add schedule form (Transport ID {transport_id}): {err}")
+        flash("Failed to load data for the add schedule form.", "error")
+        if cursor and conn.is_connected(): cursor.close(); conn.close()
+        return redirect(url_for('admin_dashboard'))
+
+    # --- Handle POST request ---
+    if request.method == 'POST':
+        source_station_id = request.form.get('source_station_id', type=int)
+        destination_station_id = request.form.get('destination_station_id', type=int)
+        departure_time_str = request.form.get('departure_time')
+        arrival_time_str = request.form.get('arrival_time')
+
+        # Basic Validation
+        if not all([source_station_id, destination_station_id, departure_time_str, arrival_time_str]):
+            flash("All fields are required.", "error")
+            cursor.close(); conn.close()
+            # Render form again with fetched data
+            return render_template('add_schedule.html', transport=transport, stations=stations, username=session.get('admin_user_name'))
+
+        if source_station_id == destination_station_id:
+            flash("Source and Destination stations cannot be the same.", "error")
+            cursor.close(); conn.close()
+            return render_template('add_schedule.html', transport=transport, stations=stations, username=session.get('admin_user_name'))
+
+        try:
+            departure_time = datetime.datetime.strptime(departure_time_str, '%Y-%m-%dT%H:%M')
+            arrival_time = datetime.datetime.strptime(arrival_time_str, '%Y-%m-%dT%H:%M')
+
+            if arrival_time <= departure_time:
+                flash("Arrival time must be after departure time.", "error")
+                cursor.close(); conn.close()
+                return render_template('add_schedule.html', transport=transport, stations=stations, username=session.get('admin_user_name'))
+
+            # Calculate duration
+            duration = arrival_time - departure_time
+            duration_hours = duration.total_seconds() / 3600
+
+            # Find the route_id based on transport, source, and destination
+            cursor.execute("""
+                SELECT route_id FROM Route
+                WHERE transport_id = %s AND source_id = %s AND destination_id = %s
+            """, (transport_id, source_station_id, destination_station_id))
+            route = cursor.fetchone()
+
+            if not route:
+                # Try finding the reverse route if needed, or just error out
+                # Example: Checking reverse
+                # cursor.execute("SELECT route_id FROM Route WHERE transport_id = %s AND source_id = %s AND destination_id = %s",
+                #                (transport_id, destination_station_id, source_station_id))
+                # route = cursor.fetchone()
+                # if not route:
+                flash(f"No defined route found for Transport {transport_id} from Station {source_station_id} to Station {destination_station_id}. Please define the route in the database first.", "error")
+                cursor.close(); conn.close()
+                return render_template('add_schedule.html', transport=transport, stations=stations, username=session.get('admin_user_name'))
+
+            found_route_id = route['route_id']
+
+            # Get the next schedule_id
+            cursor.execute("SELECT MAX(schedule_id) AS max_id FROM Schedule")
+            next_schedule_id = (cursor.fetchone()['max_id'] or 0) + 1
+
+            # Insert the new schedule
+            cursor.execute("""
+                INSERT INTO Schedule (schedule_id, transport_id, route_id, departure_time, arrival_time, duration_hours)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (next_schedule_id, transport_id, found_route_id, departure_time, arrival_time, duration_hours))
+
+            conn.commit()
+            flash(f"New schedule (ID: {next_schedule_id}) added successfully for Transport ID {transport_id}.", "success")
+            cursor.close(); conn.close()
+            return redirect(url_for('admin_dashboard'))
+
+        except ValueError:
+            flash("Invalid date/time format submitted.", "error")
+            cursor.close(); conn.close()
+            return render_template('add_schedule.html', transport=transport, stations=stations, username=session.get('admin_user_name'))
+        except mysql.connector.Error as err:
+            conn.rollback()
+            app.logger.error(f"Database error adding schedule for transport {transport_id}: {err}")
+            flash(f"Failed to add schedule due to database error: {err}", "error")
+            cursor.close(); conn.close()
+            # Render form again, potentially showing the error
+            return render_template('add_schedule.html', transport=transport, stations=stations, username=session.get('admin_user_name'))
+        except Exception as e:
+             conn.rollback()
+             app.logger.error(f"Unexpected error adding schedule for transport {transport_id}: {e}")
+             flash("An unexpected error occurred while adding the schedule.", "error")
+             cursor.close(); conn.close()
+             return render_template('add_schedule.html', transport=transport, stations=stations, username=session.get('admin_user_name'))
+
+
+    # --- Handle GET request ---
+    # Transport and stations are already fetched
+    cursor.close(); conn.close()
+    return render_template('add_schedule.html', transport=transport, stations=stations, username=session.get('admin_user_name'))
 
 @app.route('/admin/booking/<int:booking_id>/cancel', methods=['POST'])
 @admin_required
