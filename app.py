@@ -10,6 +10,7 @@ from functools import wraps
 import logging
 import random
 import string
+from decimal import Decimal
 
 
 app = Flask(__name__)
@@ -467,10 +468,11 @@ def user_cancel_booking(booking_id):
         # Less than 6 hours (including <1 hour) gets 0% refund according to the rules.
         # The rules '<1 day: 75%', '<6 hr: 25%', '<1 hr: Non refundable' imply >=1hr to <6hr is also 25%.
 
-        calculated_refund = original_price * refund_percentage
+        # calculated_refund = original_price * refund_percentage
+        calculated_refund = original_price * Decimal(str(refund_percentage))
 
         # 3. Start Transaction
-        conn.start_transaction()
+        # conn.start_transaction()   
 
         # 4. Update Booking Status
         cursor.execute("UPDATE Booking SET status = 'cancelled' WHERE booking_id = %s", (booking_id,))
