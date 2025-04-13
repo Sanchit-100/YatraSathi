@@ -1257,6 +1257,96 @@ def confirm_booking(transport_type, schedule_id):
         cursor.close()
         conn.close()
 
+
+@app.route('/admin/sales', methods=['GET'])
+@admin_required
+def admin_sales_report():
+    conn = get_db_connection()
+    if not conn:
+        flash("Database connection failed.", "error")
+        return redirect(url_for('admin_dashboard'))
+
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get the date from the query parameter or default to today
+    report_date_str = request.args.get('report_date')
+    if report_date_str:
+        try:
+            report_date = datetime.datetime.strptime(report_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash("Invalid date format.", "error")
+            report_date = datetime.datetime.now().date()
+    else:
+        report_date = datetime.datetime.now().date()
+    
+    # Format date for MySQL query
+    formatted_date = report_date.strftime('%Y-%m-%d')
+    
+    # Initialize summary data
+    summary = {
+        'total_sales': 0,
+        'total_bookings': 0,
+        'by_transport_type': {}
+    }
+    
+    detailed_bookings = []
+    
+    try:
+        # Simplified query using seat price directly
+        cursor.execute("""
+            SELECT 
+                b.booking_id, b.pnr_number, 
+                u.name AS user_name,
+                t.type AS transport_type, t.name AS transport_name,
+                s.seat_number, s.seat_class, s.price,
+                b.booking_date,
+                st_source.name AS source_station, 
+                st_dest.name AS destination_station,
+                sch.departure_time
+            FROM Booking b
+            JOIN User u ON b.user_id = u.user_id
+            JOIN Seat s ON b.seat_id = s.seat_id
+            JOIN Schedule sch ON b.schedule_id = sch.schedule_id
+            JOIN Transport t ON sch.transport_id = t.transport_id
+            JOIN Route r ON sch.route_id = r.route_id
+            JOIN Station st_source ON r.source_id = st_source.station_id
+            JOIN Station st_dest ON r.destination_id = st_dest.station_id
+            WHERE DATE(b.booking_date) = %s
+            AND b.status = 'confirmed'
+            ORDER BY b.booking_date DESC
+        """, (formatted_date,))
+        
+        detailed_bookings = cursor.fetchall()
+        
+        # Calculate summary statistics using seat price
+        if detailed_bookings:
+            summary['total_bookings'] = len(detailed_bookings)
+            summary['total_sales'] = sum(booking['price'] for booking in detailed_bookings)
+            
+            # Group by transport type
+            for booking in detailed_bookings:
+                transport_type = booking['transport_type']
+                if transport_type not in summary['by_transport_type']:
+                    summary['by_transport_type'][transport_type] = {
+                        'count': 0,
+                        'amount': 0
+                    }
+                summary['by_transport_type'][transport_type]['count'] += 1
+                summary['by_transport_type'][transport_type]['amount'] += booking['price']
+    
+    except mysql.connector.Error as err:
+        app.logger.error(f"Database error fetching sales data: {err}")
+        flash(f"Failed to retrieve sales data: {err}", "error")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return render_template('admin_sales.html', 
+                           report_date=report_date,
+                           report_date_str=report_date.strftime('%Y-%m-%d'),
+                           summary=summary,
+                           detailed_bookings=detailed_bookings,
+                           username=session.get('admin_user_name'))
 # --- Main Execution ---
 if __name__ == '__main__':
     # Configure basic logging

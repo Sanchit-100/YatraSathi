@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sales Report - YatraSathi Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Styles consistent with admin_dashboard.html */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #fff; min-height: 100vh; padding: 2rem; font-size: 14px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1, h2, h3 { margin-bottom: 1.5rem; color: #0ff; text-shadow: 0 0 5px #0ff; }
+        h1 { text-align: center; }
+        
+        .section { background: rgba(249, 249, 249, 0.05); padding: 1.5rem 2rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); margin-bottom: 2rem; }
+        .date-form { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+        .date-form label { font-size: 1.1rem; }
+        .date-form input[type="date"] { padding: 0.7rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.1); color: #fff; }
+        .date-form button { padding: 0.7rem 1.2rem; background: #0ff; color: #000; font-weight: bold; cursor: pointer; border: none; border-radius: 50px; transition: background 0.3s, transform 0.2s; }
+        .date-form button:hover { background: #0cf; transform: scale(1.05); }
+        
+        .summary-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .summary-card { background: rgba(0, 255, 255, 0.1); padding: 1rem; border-radius: 8px; text-align: center; }
+        .summary-value { font-size: 2rem; font-weight: bold; margin: 0.5rem 0; color: white; }
+        .summary-label { color: #ccc; font-size: 0.9rem; }
+        
+        .transport-summary { margin-bottom: 1.5rem; }
+        .transport-row { display: grid; grid-template-columns: 1fr 100px 150px; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .transport-row.header { font-weight: bold; color: #0ff; border-bottom: 2px solid rgba(0, 255, 255, 0.3); }
+        
+        table { width: 100%; border-collapse: collapse; background: rgba(255, 255, 255, 0.08); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
+        th, td { padding: 0.7rem 0.8rem; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        th { background: rgba(0, 255, 255, 0.1); color: #0ff; white-space: nowrap; }
+        
+        .no-data { text-align: center; padding: 2rem; color: #aaa; font-style: italic; }
+        
+        .links { display: flex; justify-content: space-between; margin-bottom: 1rem; }
+        .link { color: #0ff; text-decoration: none; transition: color 0.3s; }
+        .link:hover { color: #0cf; text-decoration: underline; }
+        
+        @media (max-width: 768px) {
+            .transport-row { grid-template-columns: 1fr 80px 100px; }
+            .date-form { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="links">
+            <a href="{{ url_for('admin_dashboard') }}" class="link">← Back to Dashboard</a>
+            <a href="{{ url_for('admin_logout') }}" class="link">Logout</a>
+        </div>
+        
+        <h1>Sales Report</h1>
+        
+        <div class="section">
+            <form class="date-form" method="GET" action="{{ url_for('admin_sales_report') }}">
+                <label for="report_date">Select Date:</label>
+                <input type="date" id="report_date" name="report_date" value="{{ report_date_str }}" required>
+                <button type="submit">View Report</button>
+            </form>
+            
+            <h2>Summary for {{ report_date.strftime('%B %d, %Y') }}</h2>
+            
+            {% if summary.total_bookings > 0 %}
+                <div class="summary-box">
+                    <div class="summary-card">
+                        <div class="summary-value">₹{{ '%.2f'|format(summary.total_sales) }}</div>
+                        <div class="summary-label">Total Sales</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">{{ summary.total_bookings }}</div>
+                        <div class="summary-label">Total Bookings</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">₹{{ '%.2f'|format(summary.total_sales / summary.total_bookings) }}</div>
+                        <div class="summary-label">Average Ticket Price</div>
+                    </div>
+                </div>
+                
+                {% if summary.by_transport_type %}
+                    <h3>Sales by Transport Type</h3>
+                    <div class="transport-summary">
+                        <div class="transport-row header">
+                            <div>Transport Type</div>
+                            <div>Bookings</div>
+                            <div>Amount</div>
+                        </div>
+                        {% for type, data in summary.by_transport_type.items() %}
+                            <div class="transport-row">
+                                <div>{{ type|capitalize }}</div>
+                                <div>{{ data.count }}</div>
+                                <div>₹{{ '%.2f'|format(data.amount) }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <h3>Detailed Booking List</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Booking Time</th>
+                            <th>PNR</th>
+                            <th>Customer</th>
+                            <th>Transport</th>
+                            <th>Route</th>
+                            <th>Seat</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in detailed_bookings %}
+                            <tr>
+                                <td>{{ booking.booking_date.strftime('%H:%M:%S') }}</td>
+                                <td>{{ booking.pnr_number }}</td>
+                                <td>{{ booking.user_name }}</td>
+                                <td>{{ booking.transport_name }} ({{ booking.transport_type|capitalize }})</td>
+                                <td>{{ booking.source_station }} → {{ booking.destination_station }}</td>
+                                <td>{{ booking.seat_number }} ({{ booking.seat_class|capitalize }})</td>
+                                <td>₹{{ '%.2f'|format(booking.price) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="no-data">No sales data found for the selected date.</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
