@@ -269,11 +269,11 @@
                     </div>
                     {% set booking_url = '' %}
                     {% if transport.transport_type == 'flight' %}
-                        {% set booking_url = url_for('flight_booking', schedule_id=transport.schedule_id) %}
+                        {% set booking_url = url_for('select_seats', transport_type='flight', schedule_id=transport.schedule_id) %}
                     {% elif transport.transport_type == 'bus' %}
-                        {% set booking_url = url_for('bus_booking', schedule_id=transport.schedule_id) %}
+                        {% set booking_url = url_for('select_seats', transport_type='bus', schedule_id=transport.schedule_id) %}
                     {% elif transport.transport_type == 'train' %}
-                        {% set booking_url = url_for('train_booking', schedule_id=transport.schedule_id) %}
+                        {% set booking_url = url_for('select_seats', transport_type='train', schedule_id=transport.schedule_id) %}
                     {% endif %}
                     <a href="{{ booking_url }}" class="book-button">Book Now</a>
                 </li>

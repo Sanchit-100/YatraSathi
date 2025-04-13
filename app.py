@@ -8,6 +8,8 @@ import os
 import datetime # Ensure datetime is imported
 from functools import wraps
 import logging
+import random
+import string
 
 
 app = Flask(__name__)
@@ -986,6 +988,152 @@ def admin_logout():
     flash('Admin logged out.', 'success')
     return redirect(url_for('admin_login'))
 
+
+@app.route('/booking/<transport_type>/<int:schedule_id>', methods=['GET'])
+@login_required
+def select_seats(transport_type, schedule_id):
+    conn = get_db_connection()
+    if not conn:
+        flash("Database connection failed.", "error")
+        return redirect(url_for('booking'))
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Get transport and schedule details
+        cursor.execute("""
+            SELECT t.transport_id, t.name AS transport_name, t.type AS transport_type, t.operator,
+                   s.schedule_id, s.departure_time, s.arrival_time,
+                   st_source.name AS source_station_name,
+                   st_dest.name AS destination_station_name
+            FROM Transport t
+            JOIN Schedule s ON t.transport_id = s.transport_id
+            JOIN Route r ON s.route_id = r.route_id
+            JOIN Station st_source ON r.source_id = st_source.station_id
+            JOIN Station st_dest ON r.destination_id = st_dest.station_id
+            WHERE s.schedule_id = %s AND t.type = %s
+        """, (schedule_id, transport_type))
+        transport = cursor.fetchone()
+        if not transport:
+            flash("Transport schedule not found.", "error")
+            return redirect(url_for('booking'))
+
+        # Get all seats with their booking status
+        cursor.execute("""
+            SELECT s.seat_id, s.seat_number, s.seat_class, s.price,
+                   CASE WHEN b.booking_id IS NOT NULL AND b.status = 'confirmed' THEN 'booked'
+                        ELSE 'available' END AS status
+            FROM Seat s
+            LEFT JOIN Booking b ON s.seat_id = b.seat_id AND b.schedule_id = %s
+            WHERE s.transport_id = %s
+            ORDER BY s.seat_number
+        """, (schedule_id, transport['transport_id']))
+        seats = cursor.fetchall()
+
+    except mysql.connector.Error as err:
+        app.logger.error(f"Database error fetching seat data: {err}")
+        flash("An error occurred while fetching seat data.", "error")
+        return redirect(url_for('booking'))
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('seat_selection.html', transport=transport, seats=seats)
+
+@app.route('/booking/<transport_type>/<int:schedule_id>/confirm', methods=['POST'])
+@login_required
+def confirm_booking(transport_type, schedule_id):
+    user_id = session['user']
+    selected_seats = request.form.get('selected_seats', '').split(',')
+    
+    if not selected_seats or selected_seats[0] == '':
+        flash("Please select at least one seat.", "error")
+        return redirect(url_for('select_seats', transport_type=transport_type, schedule_id=schedule_id))
+
+    conn = get_db_connection()
+    if not conn:
+        flash("Database connection failed.", "error")
+        return redirect(url_for('booking'))
+
+    cursor = conn.cursor(dictionary=True)
+    
+    # Generate PNR
+    pnr = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    
+    try:
+        # Check if seats are available (simpler query)
+        total_amount = 0
+        booking_ids = []
+        
+        # Process each seat individually
+        for seat_id in selected_seats:
+            if not seat_id:
+                continue
+                
+            # Get seat price and check availability
+            cursor.execute("""
+                SELECT seat_id, price 
+                FROM Seat 
+                WHERE seat_id = %s
+            """, (seat_id,))
+            seat = cursor.fetchone()
+            
+            if not seat:
+                flash(f"Seat {seat_id} not found.", "error")
+                continue
+                
+            # Check if seat is already booked
+            cursor.execute("""
+                SELECT booking_id FROM Booking 
+                WHERE seat_id = %s AND schedule_id = %s AND status = 'confirmed'
+            """, (seat_id, schedule_id))
+            
+            if cursor.fetchone():
+                flash(f"Seat {seat_id} is already booked.", "error")
+                continue
+                
+            # Generate new booking ID
+            cursor.execute("SELECT MAX(booking_id) as max_id FROM Booking")
+            result = cursor.fetchone()
+            next_booking_id = (result['max_id'] or 0) + 1
+            
+            # Create booking record
+            cursor.execute("""
+                INSERT INTO Booking (booking_id, user_id, schedule_id, seat_id, booking_date, status, pnr_number)
+                VALUES (%s, %s, %s, %s, NOW(), 'confirmed', %s)
+            """, (next_booking_id, user_id, schedule_id, seat_id, pnr))
+            
+            booking_ids.append(next_booking_id)
+            total_amount += seat['price']
+            
+        # If no seats were successfully booked
+        if not booking_ids:
+            flash("No seats were available to book.", "error")
+            return redirect(url_for('select_seats', transport_type=transport_type, schedule_id=schedule_id))
+            
+        # Create payment record using first booking ID
+        cursor.execute("SELECT MAX(payment_id) as max_id FROM Payment")
+        result = cursor.fetchone()
+        next_payment_id = (result['max_id'] or 0) + 1
+        
+        # Insert payment with required fields based on the schema
+        cursor.execute("""
+            INSERT INTO Payment (payment_id, booking_id, amount, payment_method, transaction_id, payment_status)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (next_payment_id, booking_ids[0], total_amount, 'credit_card', f'TXN-{pnr}', 'completed'))
+        
+        conn.commit()
+        # Instead of redirecting immediately, render the success page
+        cursor.close()
+        conn.close()
+        return render_template('booking_success.html', pnr=pnr)
+        
+    except mysql.connector.Error as err:
+        app.logger.error(f"Database error during booking: {err}")
+        flash(f"An error occurred: {err}", "error")
+        return redirect(url_for('select_seats', transport_type=transport_type, schedule_id=schedule_id))
+    finally:
+        cursor.close()
+        conn.close()
 
 # --- Main Execution ---
 if __name__ == '__main__':
