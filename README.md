@@ -91,31 +91,6 @@ YatraSathi/
     └── index.html         # Main page
 ```
 
-## 🤝 Contributing
-
-We use a standard Git workflow for contributions:
-
-1. Create a new branch from `development` for your feature:
-   ```bash
-   git checkout development
-   git pull
-   git checkout -b feature/your-feature-name
-   ```
-
-2. Make your changes and commit them:
-   ```bash
-   git add .
-   git commit -m "Add your meaningful commit message"
-   ```
-
-3. Push your branch and create a pull request:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-4. Request a code review from teammates
-5. After approval, your feature will be merged into the development branch
-
 ## 🔍 Use Cases
 
 1. **Traveler Planning a Trip**
@@ -137,18 +112,5 @@ We use a standard Git workflow for contributions:
    - Access user booking details
    - Process modification requests
    - Handle cancellations and refunds
-
-## 👥 Contributors
-
-- [Your Name] - Project Lead
-- [Team Member 2] - Frontend Developer
-- [Team Member 3] - Backend Developer
-- [Team Member 4] - Database Specialist
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
 
 *YatraSathi - Your Transportation Companion*
