@@ -4,5 +4,4 @@ DB_CONFIG = {
     'password': '[YOUR_MYSQL_PASSWORD]',  # Replace with your MySQL password
     'database': 'test',
     'auth_plugin': 'mysql_native_password' # Ensure a common authentication system
-
 }
