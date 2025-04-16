@@ -452,23 +452,18 @@ def user_cancel_booking(booking_id):
             return redirect(url_for('cancellation'))
 
         # 2. Calculate Refund Amount (Based on Project_Overview.pdf rules)
-        # NOTE: The request asked for status "not-confirmed", not immediate refund processing.
-        # We calculate the potential refund amount to store it.
         departure_time = booking_info['departure_time']
         now = datetime.datetime.now()
         time_diff = departure_time - now
         hours_diff = time_diff.total_seconds() / 3600
-        original_price = booking_info['price'] or 0.00 # Get original seat price
+        original_price = booking_info['price'] or 0.00  # Get original seat price
 
         refund_percentage = 0.0
-        if hours_diff >= 24: # 1 day or more
-             refund_percentage = 0.75 # 75% refund
-        elif 6 <= hours_diff < 24: # Between 6 and 24 hours
-             refund_percentage = 0.25 # 25% refund
-        # Less than 6 hours (including <1 hour) gets 0% refund according to the rules.
-        # The rules '<1 day: 75%', '<6 hr: 25%', '<1 hr: Non refundable' imply >=1hr to <6hr is also 25%.
+        if hours_diff >= 24:  # 1 day or more
+            refund_percentage = 0.75  # 75% refund
+        elif 6 <= hours_diff < 24:  # Between 6 and 24 hours
+            refund_percentage = 0.25  # 25% refund
 
-        # calculated_refund = original_price * refund_percentage
         calculated_refund = original_price * Decimal(str(refund_percentage))
 
         # 3. Start Transaction
@@ -485,16 +480,14 @@ def user_cancel_booking(booking_id):
         cursor.execute("""
             INSERT INTO Cancellation (cancellation_id, booking_id, cancellation_date, refund_amount, refund_status)
             VALUES (%s, %s, NOW(), %s, %s)
-        """, (next_c_id, booking_id, calculated_refund, 'not-confirmed')) # Status as requested
+        """, (next_c_id, booking_id, calculated_refund, 'cancelled'))
 
-        # --- Removed: Do NOT update User.Refunds here as per request ---
-        # cursor.execute("UPDATE User SET Refunds = Refunds + %s WHERE user_id = %s", (calculated_refund, user_id))
-        # --- End Removed ---
+        # Update user's wallet with refund amount
+        cursor.execute("UPDATE User SET Refunds = Refunds + %s WHERE user_id = %s", (calculated_refund, user_id))
 
         # 6. Commit
         conn.commit()
-        flash(f"Booking ID {booking_id} cancelled successfully. Refund status is 'Not Confirmed'.", "success")
-
+        flash(f"Booking ID {booking_id} cancelled successfully. Refund status is 'Processed'.", "success")
     except mysql.connector.Error as err:
         conn.rollback()
         app.logger.error(f"Database error cancelling booking {booking_id} for user {user_id}: {err}")
@@ -508,7 +501,6 @@ def user_cancel_booking(booking_id):
         conn.close()
 
     return redirect(url_for('cancellation'))
-
 
 @app.route('/logout')
 def logout():
