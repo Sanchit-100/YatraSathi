@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - YatraSathi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .dashboard {
+      max-width: 900px; /* Increased max-width */
+      margin: 0 auto;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 2rem;
+      color: #0ff;
+      text-shadow: 0 0 5px #0ff;
+    }
+    .cards {
+      display: grid;
+      /* Adjust grid columns for 5 items */
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: rgba(255,255,255,0.05);
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      text-decoration: none; /* Ensure cards are not underlined if wrapped in <a> */
+      color: inherit; /* Inherit text color */
+      display: block; /* Make the card act like a block link */
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,255,255,0.3);
+    }
+    .card h3 {
+      margin-bottom: 1rem;
+      color: #0ff;
+    }
+    .card p {
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+    .logout {
+      margin-top: 2rem;
+      display: inline-block;
+      padding: 0.6rem 1.2rem;
+      background: #f00;
+      color: #fff;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+    .logout:hover {
+      background: #c00;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <h2>Welcome to Your Dashboard, {{ username or 'User' }}!</h2>
+    <div class="cards">
+       <a href="{{ url_for('booking') }}" class="card">
+        <h3>Book Transport</h3>
+        <p>Search all active transports (Bus, Train, Flight).</p>
+      </a>
+       <a href="{{ url_for('profile') }}" class="card">
+        <h3>My Profile</h3>
+        <p>View or edit your personal information.</p>
+      </a>
+      <a href="{{ url_for('cancellation') }}" class="card">
+        <h3>View/Cancel Bookings</h3>
+        <p>Manage your current bookings and view past cancellations.</p>
+      </a>
+       </div>
+    <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+  </div>
+</body>
+</html>

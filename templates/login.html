@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - YatraSathi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Existing styles remain the same */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .login-container {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 3rem;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 40px rgba(0, 255, 255, 0.2);
+      backdrop-filter: blur(20px);
+      width: 100%;
+      max-width: 400px;
+      animation: float 6s ease-in-out infinite;
+      text-align: center; /* Center content */
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #0ff;
+      text-shadow: 0 0 5px #0ff;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      margin-bottom: 1.5rem; /* Add space below form */
+    }
+
+    input {
+      padding: 0.9rem 1rem;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: box-shadow 0.3s ease;
+    }
+
+    input::placeholder {
+      color: #ccc;
+    }
+
+    input:focus {
+      box-shadow: 0 0 8px #0ff;
+    }
+
+    button {
+      padding: 0.9rem 1rem;
+      background: #0ff;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s;
+    }
+
+    button:hover {
+      background: #0cf;
+      transform: scale(1.05);
+    }
+
+    .flash-messages {
+      margin-top: 1rem;
+      text-align: center;
+      margin-bottom: 1rem; /* Add space below flashes */
+    }
+
+    .flash-messages ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .flash-messages li {
+      background: rgba(255, 0, 0, 0.2);
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      color: #ff8080;
+      font-weight: bold;
+    }
+
+    .admin-login-link a {
+        color: #0ff;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+    .admin-login-link a:hover {
+        text-decoration: underline;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <h2>User Login</h2>
+    <form method="POST">
+      <input name="email" placeholder="Email" required>
+      <input name="password" type="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+
+    {% with messages = get_flashed_messages(category_filter=['error']) %} {# Only show error messages here #}
+      {% if messages %}
+      <div class="flash-messages">
+        <ul>{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="admin-login-link">
+        <a href="{{ url_for('admin_login') }}">Login as Admin</a>
+    </div>
+  </div>
+
+</body>
+</html>

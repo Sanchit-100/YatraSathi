@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Seats - YatraSathi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+        }
+        .transport-info {
+            background: rgba(249, 249, 249, 0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+        }
+        .transport-info p {
+            margin: 0.5rem 0;
+            color: #ccc;
+        }
+        .transport-info strong {
+            color: #0ff;
+        }
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .seat {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        .seat.available {
+            background: rgba(0, 255, 0, 0.2);
+            border: 2px solid #0f0;
+        }
+        .seat.selected {
+            background: rgba(0, 255, 255, 0.3);
+            border: 2px solid #0ff;
+        }
+        .seat.booked {
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid #f00;
+            cursor: not-allowed;
+        }
+        .seat.available:hover {
+            transform: scale(1.1);
+            background: rgba(0, 255, 0, 0.3);
+        }
+        .booking-summary {
+            background: rgba(249, 249, 249, 0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 2rem;
+        }
+        .booking-summary p {
+            margin: 0.5rem 0;
+            color: #ccc;
+        }
+        .booking-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .btn {
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+        .btn-pay {
+            background: #28a745;
+            color: white;
+        }
+        .btn-cancel {
+            background: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .btn-pay:hover {
+            background: #218838;
+        }
+        .btn-cancel:hover {
+            background: #c82333;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #0ff;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .flash-messages {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .flash-messages ul {
+            list-style: none;
+            padding: 0;
+        }
+        .flash-messages li {
+            background: rgba(255, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            color: #ff8080;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('booking') }}" class="back-link">← Back to Transport List</a>
+        <h1>Select Your Seats</h1>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+          <div class="flash-messages">
+            <ul>{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>
+          </div>
+          {% endif %}
+        {% endwith %}
+
+        <div class="transport-info">
+            <p><strong>Transport:</strong> {{ transport.transport_name }} ({{ transport.transport_type|capitalize }})</p>
+            <p><strong>Operator:</strong> {{ transport.operator }}</p>
+            <p><strong>From:</strong> {{ transport.source_station_name }}</p>
+            <p><strong>To:</strong> {{ transport.destination_station_name }}</p>
+            <p><strong>Departure:</strong> {{ transport.departure_time.strftime('%Y-%m-%d %H:%M') }}</p>
+            <p><strong>Arrival:</strong> {{ transport.arrival_time.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+
+        <h2>Available Seats</h2>
+        <div class="seat-grid">
+            {% for seat in seats %}
+            <div class="seat {% if seat.status == 'available' %}available{% elif seat.status == 'booked' %}booked{% endif %}"
+                 data-seat-id="{{ seat.seat_id }}"
+                 data-price="{{ seat.price }}"
+                 data-seat-number="{{ seat.seat_number }}"
+                 data-seat-class="{{ seat.seat_class }}">
+                {{ seat.seat_number }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="booking-summary">
+            <h2>Booking Summary</h2>
+            <p><strong>Selected Seats:</strong> <span id="selected-seats">None</span></p>
+            <p><strong>Total Price:</strong> ₹<span id="total-price">0.00</span></p>
+        </div>
+
+        <form id="booking-form" method="POST" action="{{ url_for('confirm_booking', transport_type=transport.transport_type, schedule_id=transport.schedule_id) }}">
+            <input type="hidden" name="selected_seats" id="selected-seats-input">
+            <div class="booking-actions">
+                <button type="submit" class="btn btn-pay">PAY</button>
+                <a href="{{ url_for('booking') }}" class="btn btn-cancel">CANCEL</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const seats = document.querySelectorAll('.seat.available');
+            const selectedSeatsInput = document.getElementById('selected-seats-input');
+            const selectedSeatsDisplay = document.getElementById('selected-seats');
+            const totalPriceDisplay = document.getElementById('total-price');
+            let selectedSeats = new Set();
+            let totalPrice = 0;
+
+            seats.forEach(seat => {
+                seat.addEventListener('click', function() {
+                    const seatId = this.dataset.seatId;
+                    const price = parseFloat(this.dataset.price);
+                    const seatNumber = this.dataset.seatNumber;
+                    const seatClass = this.dataset.seatClass;
+
+                    if (this.classList.contains('selected')) {
+                        // Deselect seat
+                        this.classList.remove('selected');
+                        selectedSeats.delete(seatId);
+                        totalPrice -= price;
+                    } else {
+                        // Select seat
+                        this.classList.add('selected');
+                        selectedSeats.add(seatId);
+                        totalPrice += price;
+                    }
+
+                    // Update display
+                    selectedSeatsDisplay.textContent = selectedSeats.size > 0 
+                        ? Array.from(selectedSeats).map(id => {
+                            const seat = document.querySelector(`[data-seat-id="${id}"]`);
+                            return seat.dataset.seatNumber;
+                        }).join(', ')
+                        : 'None';
+                    totalPriceDisplay.textContent = totalPrice.toFixed(2);
+                    selectedSeatsInput.value = Array.from(selectedSeats).join(',');
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

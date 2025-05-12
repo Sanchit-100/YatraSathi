@@ -137,18 +137,4 @@ We use a standard Git workflow for contributions:
    - Access user booking details
    - Process modification requests
    - Handle cancellations and refunds
-
-## 👥 Contributors
-
-- [Your Name] - Project Lead
-- [Team Member 2] - Frontend Developer
-- [Team Member 3] - Backend Developer
-- [Team Member 4] - Database Specialist
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
 *YatraSathi - Your Transportation Companion*
